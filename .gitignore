@@ -48,3 +48,6 @@ jspm_packages/
 
 #Ignore vscode AI rules
 .github\instructions\codacy.instructions.md
+
+# Nested git repositories
+apimatic-validator-mcp/

@@ -4,7 +4,10 @@
       "Bash(tree \"c:\\Users\\Clay\\source\\repos\\chunk-flow-app\" -L 3 -I \"node_modules\")",
       "Bash(git init)",
       "Bash(git check-ignore -v .env.local)",
-      "Bash(git add -A)"
+      "Bash(git add -A)",
+      "Bash(git commit -m \"$(cat <<''EOF''\nInitial commit: ChunkFlow-IO Audio Avatars Platform\n\n- Add core application files (index.tsx, index.html, index.css)\n- Implement real-time audio conversation with Google Gemini 2.5 Flash\n- Implement AI image generation with Google Imagen 4.0\n- Add 15 character personas with moods, roles, and styles\n- Add waveform visualization for audio\n- Configure Vite build system with TypeScript\n- Add Firebase and Google GenAI dependencies\n- Include project documentation (README, CHUNKFLOW-IO, SETUP)\n- Set up memory-bank for project planning\n- Configure .gitignore to protect API keys and sensitive files\n- Add .env.example template for secure environment setup\n\nSecurity: API keys properly excluded from version control\nEOF\n)\")",
+      "Bash(git check-ignore .env.local)",
+      "Bash(npm install)"
     ],
     "deny": [],
     "ask": []
