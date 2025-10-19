@@ -35,6 +35,8 @@ declare global {
 
 import { createApp, ref, defineComponent, onMounted, onUnmounted, computed, watch, nextTick, reactive } from 'vue';
 import { EndSensitivity, GoogleGenAI, LiveServerMessage, Modality, Session, StartSensitivity, Type } from '@google/genai';
+import { AuthModal, UserProfile } from './src/components';
+import { useAuth } from './src/composables/useAuth';
 
 const INTERRUPT_SENSITIVITY_OPTIONS = [
   { value: StartSensitivity.START_SENSITIVITY_LOW, label: 'Harder to interrupt' },
@@ -1108,9 +1110,17 @@ const VISUAL_ACCESSORIES: Record<string, string[]> = {
 const ImagineComponent = defineComponent({
   components: {
     LiveAudioComponent,
-    CharacterImage
+    CharacterImage,
+    AuthModal,
+    UserProfile
   },
   setup() {
+    // Authentication state
+    const { currentUser, isAuthenticated, loading: authLoading } = useAuth();
+    const showAuthModal = ref(false);
+    const showProfileModal = ref(false);
+    const authMode = ref<'login' | 'signup' | 'reset'>('login');
+
     const currentView = ref<'avatars' | 'audiobook'>('avatars');
     const noAudioCount = ref<number>(0); // Add counter for no-audio events
     const characterGenerated = ref<boolean>(false);
@@ -1841,6 +1851,14 @@ const ImagineComponent = defineComponent({
     };
 
     return {
+      // Authentication
+      currentUser,
+      isAuthenticated,
+      authLoading,
+      showAuthModal,
+      showProfileModal,
+      authMode,
+      // Rest of component state
       currentView,
       noAudioCount,
       characterGenerated,
@@ -1923,6 +1941,22 @@ const ImagineComponent = defineComponent({
              <button @click="currentView = 'audiobook'" class="px-3 py-1 rounded-full transition-colors" :class="currentView === 'audiobook' ? 'bg-black text-white' : 'hover:bg-black/10'">Audiobook Creator</button>
           </div>
           <div class="flex items-center space-x-2">
+            <!-- Auth Buttons -->
+            <button
+              v-if="!isAuthenticated && !authLoading"
+              @click="authMode = 'login'; showAuthModal = true"
+              class="bg-blue-600 hover:bg-blue-700 text-white font-medium px-4 py-2 rounded-full transition"
+            >
+              Sign In
+            </button>
+            <button
+              v-if="isAuthenticated"
+              @click="showProfileModal = true"
+              class="bg-white/50 hover:bg-white text-black font-bold p-2 rounded-full aspect-square flex items-center justify-center"
+              :title="currentUser?.displayName || 'Profile'"
+            >
+              <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2"></path><circle cx="12" cy="7" r="4"></circle></svg>
+            </button>
             <button @click="showShareModal = true" class="bg-white/50 hover:bg-white text-black font-bold p-2 rounded-full aspect-square flex items-center justify-center">
               <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="18" cy="5" r="3"></circle><circle cx="6" cy="12" r="3"></circle><circle cx="18" cy="19" r="3"></circle><line x1="8.59" y1="13.51" x2="15.42" y2="17.49"></line><line x1="15.41" y1="6.51" x2="8.59" y2="10.49"></line></svg>
             </button>
@@ -2191,6 +2225,22 @@ const ImagineComponent = defineComponent({
           </div>
         </div>
       </transition>
+
+      <!-- Auth Modal -->
+      <AuthModal
+        :show="showAuthModal"
+        :initialMode="authMode"
+        @close="showAuthModal = false"
+        @authenticated="showAuthModal = false"
+      />
+
+      <!-- User Profile Modal -->
+      <UserProfile
+        :show="showProfileModal"
+        :user="currentUser"
+        @close="showProfileModal = false"
+        @signedOut="showProfileModal = false"
+      />
     </div>
 `
 })]
