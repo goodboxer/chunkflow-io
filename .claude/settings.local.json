@@ -1,0 +1,12 @@
+{
+  "permissions": {
+    "allow": [
+      "Bash(tree \"c:\\Users\\Clay\\source\\repos\\chunk-flow-app\" -L 3 -I \"node_modules\")",
+      "Bash(git init)",
+      "Bash(git check-ignore -v .env.local)",
+      "Bash(git add -A)"
+    ],
+    "deny": [],
+    "ask": []
+  }
+}

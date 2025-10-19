@@ -1,0 +1,8 @@
+{
+  "name": "Chunk Flow IO=",
+  "description": "Unleash your imagination! Use Chunk Flow IO's creative AI TTS voices and see their characters come to life with (HD) quality text-to-audio fully user controlled customizable voices coupled with the latest Imagen (HD) text-to-image AI technology for the creation of high-quality images for your visual audio book creations",
+  "requestFramePermissions": [
+    "microphone"
+  ],
+  "prompt": ""
+}
