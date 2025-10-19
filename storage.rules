@@ -1,0 +1,44 @@
+rules_version = '2';
+
+// Firebase Storage Security Rules for ChunkFlow-IO
+// These rules ensure users can only access their own files
+
+service firebase.storage {
+  match /b/{bucket}/o {
+
+    // Helper function to check if user is authenticated
+    function isAuthenticated() {
+      return request.auth != null;
+    }
+
+    // Helper function to check if user owns the file
+    function isOwner(userId) {
+      return request.auth.uid == userId;
+    }
+
+    // User-specific files - organized by userId
+    match /users/{userId}/{allPaths=**} {
+      allow read: if isAuthenticated() && isOwner(userId);
+      allow write: if isAuthenticated() && isOwner(userId);
+      allow delete: if isAuthenticated() && isOwner(userId);
+    }
+
+    // Audiobook files - organized by userId/projectId
+    match /audiobooks/{userId}/{projectId}/{allPaths=**} {
+      allow read: if isAuthenticated() && isOwner(userId);
+      allow write: if isAuthenticated() && isOwner(userId);
+      allow delete: if isAuthenticated() && isOwner(userId);
+    }
+
+    // Public assets (like character avatars, if needed)
+    match /public/{allPaths=**} {
+      allow read: if true;
+      allow write: if false; // Only allow writes through admin SDK
+    }
+
+    // Deny all other access by default
+    match /{allPaths=**} {
+      allow read, write: if false;
+    }
+  }
+}

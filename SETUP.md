@@ -4,7 +4,7 @@
 
 ### Required API Keys
 
-This project requires a Google Gemini API key to function.
+This project requires Google Gemini and Firebase credentials to function.
 
 **Setup Steps:**
 
@@ -13,13 +13,37 @@ This project requires a Google Gemini API key to function.
    cp .env.example .env.local
    ```
 
-2. Get your Gemini API key:
+2. **Get your Gemini API key:**
    - Visit: https://aistudio.google.com/apikey
    - Create or copy your API key
+   - Add to `.env.local` as `GEMINI_API_KEY`
 
-3. Edit `.env.local` and replace the placeholder with your actual key:
+3. **Set up Firebase project:**
+   - Visit: https://console.firebase.google.com/
+   - Create a new project (or use existing)
+   - Go to Project Settings > General
+   - Scroll to "Your apps" and click "Web app" (</>)
+   - Copy the configuration values
+   - Enable Authentication:
+     - Go to Authentication > Sign-in method
+     - Enable "Email/Password" and "Google"
+   - Enable Firestore Database:
+     - Go to Firestore Database
+     - Create database in production mode
+   - Enable Storage:
+     - Go to Storage
+     - Get started with default rules
+
+4. Edit `.env.local` and add all Firebase configuration values:
    ```
    GEMINI_API_KEY=your_actual_key_here
+
+   VITE_FIREBASE_API_KEY=your_firebase_api_key
+   VITE_FIREBASE_AUTH_DOMAIN=your-project.firebaseapp.com
+   VITE_FIREBASE_PROJECT_ID=your-project-id
+   VITE_FIREBASE_STORAGE_BUCKET=your-project.appspot.com
+   VITE_FIREBASE_MESSAGING_SENDER_ID=123456789
+   VITE_FIREBASE_APP_ID=1:123456789:web:abcdef
    ```
 
 ### Security Notice
@@ -58,3 +82,8 @@ The app will be available at http://localhost:3000
 **API quota exceeded:**
 - Check your Gemini API usage at https://aistudio.google.com
 - You may need to upgrade your API plan or wait for quota reset
+
+**Firebase not initializing:**
+- Verify all Firebase environment variables are set in `.env.local`
+- Check Firebase Console for correct configuration values
+- Ensure Firebase services (Auth, Firestore, Storage) are enabled in console
