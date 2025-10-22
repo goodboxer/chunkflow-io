@@ -6,3 +6,4 @@
 
 export { AuthModal } from './AuthModal';
 export { UserProfile } from './UserProfile';
+export { SentryTestPage } from './SentryTestPage';

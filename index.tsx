@@ -33,10 +33,13 @@ declare global {
   }
 }
 
+import './src/styles/tailwind.css';
+
 import { createApp, ref, defineComponent, onMounted, onUnmounted, computed, watch, nextTick, reactive } from 'vue';
 import { EndSensitivity, GoogleGenAI, LiveServerMessage, Modality, Session, StartSensitivity, Type } from '@google/genai';
-import { AuthModal, UserProfile } from './src/components';
+import { AuthModal, UserProfile, SentryTestPage } from './src/components';
 import { useAuth } from './src/composables/useAuth';
+import { validateEnvironment, getGeminiApiKey } from './src/config/env-validation';
 
 const INTERRUPT_SENSITIVITY_OPTIONS = [
   { value: StartSensitivity.START_SENSITIVITY_LOW, label: 'Harder to interrupt' },
@@ -363,7 +366,7 @@ const LiveAudioComponent = defineComponent({
         }
       });
       activeSources = [];
-      
+
       // Reset the next start time
       if (outputAudioContext) {
         nextStartTime = outputAudioContext.currentTime;
@@ -371,8 +374,8 @@ const LiveAudioComponent = defineComponent({
     };
 
     const initAudio = () => {
-      inputAudioContext = new (window.AudioContext || window.webkitAudioContext)({sampleRate: 16000});
-      outputAudioContext = new (window.AudioContext || window.webkitAudioContext)({sampleRate: 24000});
+      inputAudioContext = new (window.AudioContext || window.webkitAudioContext)({ sampleRate: 16000 });
+      outputAudioContext = new (window.AudioContext || window.webkitAudioContext)({ sampleRate: 24000 });
       inputNode = inputAudioContext.createGain();
       outputNode = outputAudioContext.createGain();
 
@@ -491,9 +494,9 @@ const LiveAudioComponent = defineComponent({
             },
             onmessage: async (message: LiveServerMessage) => {
               const audio =
-                  message.serverContent?.modelTurn?.parts[0]?.inlineData;
+                message.serverContent?.modelTurn?.parts[0]?.inlineData;
               const text =
-                  message.serverContent?.outputTranscription?.text;
+                message.serverContent?.outputTranscription?.text;
               const turnComplete = message.serverContent?.turnComplete;
               const interrupted = message.serverContent?.interrupted;
 
@@ -509,15 +512,15 @@ const LiveAudioComponent = defineComponent({
 
               if (audio) {
                 nextStartTime = Math.max(
-                    nextStartTime,
-                    outputAudioContext.currentTime,
+                  nextStartTime,
+                  outputAudioContext.currentTime,
                 );
 
                 const audioBuffer = await decodeAudioData(
-                    decode(audio.data),
-                    outputAudioContext,
-                    24000,
-                    1,
+                  decode(audio.data),
+                  outputAudioContext,
+                  24000,
+                  1,
                 );
                 const source = outputAudioContext.createBufferSource();
                 source.buffer = audioBuffer;
@@ -568,14 +571,14 @@ const LiveAudioComponent = defineComponent({
               }
             },
             speechConfig: {
-              voiceConfig: {prebuiltVoiceConfig: {voiceName: selectedVoice}},
+              voiceConfig: { prebuiltVoiceConfig: { voiceName: selectedVoice } },
             }
           },
         });
-        window.onbeforeunload = function(){
+        window.onbeforeunload = function () {
           session?.close();
         }
-        window.addEventListener("beforeunload", function(e){
+        window.addEventListener("beforeunload", function (e) {
           session?.close();
         });
 
@@ -632,7 +635,7 @@ const LiveAudioComponent = defineComponent({
         updateStatus('Starting capture...');
 
         sourceNode = inputAudioContext.createMediaStreamSource(
-            mediaStream,
+          mediaStream,
         );
 
         // Connect the source to both the input node and analyser
@@ -641,9 +644,9 @@ const LiveAudioComponent = defineComponent({
 
         const bufferSize = 4096;
         scriptProcessorNode = inputAudioContext.createScriptProcessor(
-            bufferSize,
-            1,
-            1,
+          bufferSize,
+          1,
+          1,
         );
 
         scriptProcessorNode.onaudioprocess = (audioProcessingEvent) => {
@@ -662,7 +665,7 @@ const LiveAudioComponent = defineComponent({
           const inputBuffer = audioProcessingEvent.inputBuffer;
           const pcmData = inputBuffer.getChannelData(0);
 
-          session.sendRealtimeInput({media: createBlob(pcmData)});
+          session.sendRealtimeInput({ media: createBlob(pcmData) });
         };
 
         sourceNode.connect(scriptProcessorNode);
@@ -828,7 +831,7 @@ const CharacterImage = defineComponent({
             return;
           }
           ctx.drawImage(img, 0, 0);
-          
+
           // Define the key pixels to check
           const keyPixels = [
             { x: 0, y: 0 }, // top-left
@@ -1121,7 +1124,7 @@ const ImagineComponent = defineComponent({
     const showProfileModal = ref(false);
     const authMode = ref<'login' | 'signup' | 'reset'>('login');
 
-    const currentView = ref<'avatars' | 'audiobook'>('avatars');
+    const currentView = ref<'avatars' | 'audiobook' | 'sentry-test'>('avatars');
     const noAudioCount = ref<number>(0); // Add counter for no-audio events
     const characterGenerated = ref<boolean>(false);
     const playingResponse = ref<boolean>(false);
@@ -1197,29 +1200,29 @@ const ImagineComponent = defineComponent({
 
     // Audiobook Creator State
     const audiobookState = reactive({
-        step: 'upload', // upload, parsing, editing, generating, finished
-        fileName: '',
-        script: [] as { character: string; line: string }[],
-        characters: [] as {
-            name: string;
-            description: string;
-            style: string;
-            prompt: string;
-            imageUrl: string | null;
-            isLoading: boolean;
-        }[],
-        scenes: [] as {
-            insertAfterLineIndex: number;
-            prompt: string;
-            imageUrl: string | null;
-            isLoading: boolean;
-        }[],
-        voiceAssignments: {} as Record<string, string>,
-        generationProgress: 0,
-        finalAudioUrl: null as string | null,
-        error: null as string | null,
-        currentlyPlayingLine: -1,
-        editingTab: 'voices', // 'voices', 'characters', 'scenes'
+      step: 'upload', // upload, parsing, editing, generating, finished
+      fileName: '',
+      script: [] as { character: string; line: string }[],
+      characters: [] as {
+        name: string;
+        description: string;
+        style: string;
+        prompt: string;
+        imageUrl: string | null;
+        isLoading: boolean;
+      }[],
+      scenes: [] as {
+        insertAfterLineIndex: number;
+        prompt: string;
+        imageUrl: string | null;
+        isLoading: boolean;
+      }[],
+      voiceAssignments: {} as Record<string, string>,
+      generationProgress: 0,
+      finalAudioUrl: null as string | null,
+      error: null as string | null,
+      currentlyPlayingLine: -1,
+      editingTab: 'voices', // 'voices', 'characters', 'scenes'
     });
     const ART_STYLES = ['Realistic', 'Cartoon', 'Anime', '3D Animation', 'Watercolor', 'Pixel Art'];
     let previewAudio: HTMLAudioElement | null = null;
@@ -1240,20 +1243,20 @@ const ImagineComponent = defineComponent({
       if (!selectedStyle.value) missing.push('style');
       return missing;
     });
-    
+
     const audiobookScriptWithScenes = computed(() => {
-        const merged: ({ type: 'line'; data: any } | { type: 'scene'; data: any })[] = [];
-        const sceneMap = new Map(audiobookState.scenes.map(s => [s.insertAfterLineIndex, s]));
-        audiobookState.script.forEach((line, index) => {
-            merged.push({ type: 'line', data: line });
-            if (sceneMap.has(index)) {
-                const sceneData = sceneMap.get(index);
-                if (sceneData) {
-                   merged.push({ type: 'scene', data: sceneData });
-                }
-            }
-        });
-        return merged;
+      const merged: ({ type: 'line'; data: any } | { type: 'scene'; data: any })[] = [];
+      const sceneMap = new Map(audiobookState.scenes.map(s => [s.insertAfterLineIndex, s]));
+      audiobookState.script.forEach((line, index) => {
+        merged.push({ type: 'line', data: line });
+        if (sceneMap.has(index)) {
+          const sceneData = sceneMap.get(index);
+          if (sceneData) {
+            merged.push({ type: 'scene', data: sceneData });
+          }
+        }
+      });
+      return merged;
     });
 
     const selectionPrompt = computed(() => {
@@ -1482,7 +1485,7 @@ const ImagineComponent = defineComponent({
         await characterImageRef.value.loadKey('Dialog API quota exceeded, please set a project with more resources by clicking the key icon in the toolbar');
       }
     };
-    
+
     const stopPlaybackAndReset = () => {
       if (liveAudioRef.value) {
         liveAudioRef.value.stopRecording();
@@ -1505,7 +1508,7 @@ const ImagineComponent = defineComponent({
     };
 
     // --- Audiobook Creator Methods ---
-    
+
     const resetAudiobookCreator = () => {
       audiobookState.step = 'upload';
       audiobookState.fileName = '';
@@ -1577,58 +1580,58 @@ const ImagineComponent = defineComponent({
           config: {
             responseMimeType: "application/json",
             responseSchema: {
-                type: Type.OBJECT,
-                properties: {
-                    script: {
-                        type: Type.ARRAY,
-                        items: {
-                            type: Type.OBJECT,
-                            properties: {
-                                character: { type: Type.STRING },
-                                line: { type: Type.STRING }
-                            },
-                            required: ['character', 'line']
-                        }
+              type: Type.OBJECT,
+              properties: {
+                script: {
+                  type: Type.ARRAY,
+                  items: {
+                    type: Type.OBJECT,
+                    properties: {
+                      character: { type: Type.STRING },
+                      line: { type: Type.STRING }
                     },
-                    characters: {
-                        type: Type.ARRAY,
-                        items: {
-                            type: Type.OBJECT,
-                            properties: {
-                                name: { type: Type.STRING },
-                                description: { type: Type.STRING },
-                                style: { type: Type.STRING },
-                                prompt: { type: Type.STRING },
-                            },
-                            required: ['name', 'description', 'style', 'prompt']
-                        }
+                    required: ['character', 'line']
+                  }
+                },
+                characters: {
+                  type: Type.ARRAY,
+                  items: {
+                    type: Type.OBJECT,
+                    properties: {
+                      name: { type: Type.STRING },
+                      description: { type: Type.STRING },
+                      style: { type: Type.STRING },
+                      prompt: { type: Type.STRING },
                     },
-                    scenes: {
-                        type: Type.ARRAY,
-                        items: {
-                            type: Type.OBJECT,
-                            properties: {
-                                insertAfterLineIndex: { type: Type.INTEGER },
-                                prompt: { type: Type.STRING },
-                            },
-                            required: ['insertAfterLineIndex', 'prompt']
-                        }
-                    }
+                    required: ['name', 'description', 'style', 'prompt']
+                  }
+                },
+                scenes: {
+                  type: Type.ARRAY,
+                  items: {
+                    type: Type.OBJECT,
+                    properties: {
+                      insertAfterLineIndex: { type: Type.INTEGER },
+                      prompt: { type: Type.STRING },
+                    },
+                    required: ['insertAfterLineIndex', 'prompt']
+                  }
                 }
+              }
             },
           },
         });
-        
+
         const result = JSON.parse(response.text);
-        
+
         audiobookState.script = result.script;
         audiobookState.characters = result.characters.map((c: any) => ({ ...c, imageUrl: null, isLoading: false }));
         audiobookState.scenes = result.scenes.map((s: any) => ({ ...s, imageUrl: null, isLoading: false }));
-        
+
         const characterNames = result.characters.map((c: any) => c.name);
         audiobookState.voiceAssignments = characterNames.reduce((acc: Record<string, string>, charName: string) => {
-            acc[charName] = voiceOptions[0].name; // Assign a default voice
-            return acc;
+          acc[charName] = voiceOptions[0].name; // Assign a default voice
+          return acc;
         }, {});
 
         audiobookState.step = 'editing';
@@ -1648,9 +1651,9 @@ const ImagineComponent = defineComponent({
         audiobookState.currentlyPlayingLine = -1;
         return;
       }
-      
+
       audiobookState.currentlyPlayingLine = index;
-      
+
       try {
         const ai = new GoogleGenAI({ apiKey: process.env.API_KEY });
         const voiceName = audiobookState.voiceAssignments[line.character];
@@ -1666,77 +1669,80 @@ const ImagineComponent = defineComponent({
         });
         const base64Audio = response.candidates?.[0]?.content?.parts?.[0]?.inlineData?.data;
         if (base64Audio) {
-           const audioCtx = new (window.AudioContext || window.webkitAudioContext)({sampleRate: 24000});
-           const audioBuffer = await decodeAudioData(decode(base64Audio), audioCtx, 24000, 1);
-           const source = audioCtx.createBufferSource();
-           source.buffer = audioBuffer;
-           source.connect(audioCtx.destination);
-           source.start();
-           source.onended = () => {
-              if(audiobookState.currentlyPlayingLine === index) {
-                audiobookState.currentlyPlayingLine = -1;
-              }
-           };
+          const audioCtx = new (window.AudioContext || window.webkitAudioContext)({ sampleRate: 24000 });
+          const audioBuffer = await decodeAudioData(decode(base64Audio), audioCtx, 24000, 1);
+          const source = audioCtx.createBufferSource();
+          source.buffer = audioBuffer;
+          source.connect(audioCtx.destination);
+          source.start();
+          source.onended = () => {
+            if (audiobookState.currentlyPlayingLine === index) {
+              audiobookState.currentlyPlayingLine = -1;
+            }
+          };
         }
       } catch (error) {
         console.error("Preview failed:", error);
         audiobookState.currentlyPlayingLine = -1;
       }
     };
-    
+
     const generateAudiobookImage = async (item: { prompt: string; imageUrl: string | null; isLoading: boolean; }) => {
-        if (!item.prompt) return;
-        item.isLoading = true;
-        item.imageUrl = null;
-        try {
-            const ai = new GoogleGenAI({ apiKey: process.env.API_KEY });
-            const response = await ai.models.generateImages({
-                model: selectedImageModel.value,
-                prompt: item.prompt,
-                config: { numberOfImages: 1, outputMimeType: 'image/jpeg' },
-            });
-            if (response.generatedImages && response.generatedImages[0].image?.imageBytes) {
-                const src = `data:image/jpeg;base64,${response.generatedImages[0].image.imageBytes}`;
-                item.imageUrl = src;
-            } else {
-                throw new Error('No image data received from the API.');
-            }
-        } catch (e) {
-            console.error("Image generation failed:", e);
-            // Optionally set an error message on the item to display in the UI
-        } finally {
-            item.isLoading = false;
+      if (!item.prompt) return;
+      item.isLoading = true;
+      item.imageUrl = null;
+      try {
+        const ai = new GoogleGenAI({ apiKey: process.env.API_KEY });
+        const response = await ai.models.generateImages({
+          model: selectedImageModel.value,
+          prompt: item.prompt,
+          config: { numberOfImages: 1, outputMimeType: 'image/jpeg' },
+        });
+        if (response.generatedImages && response.generatedImages[0].image?.imageBytes) {
+          const src = `data:image/jpeg;base64,${response.generatedImages[0].image.imageBytes}`;
+          item.imageUrl = src;
+        } else {
+          throw new Error('No image data received from the API.');
         }
+      } catch (e) {
+        console.error("Image generation failed:", e);
+        // Optionally set an error message on the item to display in the UI
+      } finally {
+        item.isLoading = false;
+      }
     };
 
     function writeString(view: DataView, offset: number, string: string) {
-        for (let i = 0; i < string.length; i++) {
-            view.setUint8(offset + i, string.charCodeAt(i));
-        }
+      for (let i = 0; i < string.length; i++) {
+        view.setUint8(offset + i, string.charCodeAt(i));
+      }
     }
 
     function createWavFile(pcmData: Uint8Array): Blob {
-        const sampleRate = 24000;
-        const numChannels = 1;
-        const bitsPerSample = 16;
-        const header = new ArrayBuffer(44);
-        const view = new DataView(header);
+      const sampleRate = 24000;
+      const numChannels = 1;
+      const bitsPerSample = 16;
+      const header = new ArrayBuffer(44);
+      const view = new DataView(header);
 
-        writeString(view, 0, 'RIFF');
-        view.setUint32(4, 36 + pcmData.byteLength, true);
-        writeString(view, 8, 'WAVE');
-        writeString(view, 12, 'fmt ');
-        view.setUint32(16, 16, true);
-        view.setUint16(20, 1, true);
-        view.setUint16(22, numChannels, true);
-        view.setUint32(24, sampleRate, true);
-        view.setUint32(28, sampleRate * numChannels * (bitsPerSample / 8), true);
-        view.setUint16(32, numChannels * (bitsPerSample / 8), true);
-        view.setUint16(34, bitsPerSample, true);
-        writeString(view, 36, 'data');
-        view.setUint32(40, pcmData.byteLength, true);
+      writeString(view, 0, 'RIFF');
+      view.setUint32(4, 36 + pcmData.byteLength, true);
+      writeString(view, 8, 'WAVE');
+      writeString(view, 12, 'fmt ');
+      view.setUint32(16, 16, true);
+      view.setUint16(20, 1, true);
+      view.setUint16(22, numChannels, true);
+      view.setUint32(24, sampleRate, true);
+      view.setUint32(28, sampleRate * numChannels * (bitsPerSample / 8), true);
+      view.setUint16(32, numChannels * (bitsPerSample / 8), true);
+      view.setUint16(34, bitsPerSample, true);
+      writeString(view, 36, 'data');
+      view.setUint32(40, pcmData.byteLength, true);
 
-        return new Blob([header, pcmData], { type: 'audio/wav' });
+      const pcmBuffer = new ArrayBuffer(pcmData.byteLength);
+      new Uint8Array(pcmBuffer).set(pcmData);
+
+      return new Blob([header, pcmBuffer], { type: 'audio/wav' });
     }
 
     const generateFullAudiobook = async () => {
@@ -1749,7 +1755,7 @@ const ImagineComponent = defineComponent({
         for (let i = 0; i < audiobookState.script.length; i++) {
           const item = audiobookState.script[i];
           const voiceName = audiobookState.voiceAssignments[item.character];
-          
+
           const response = await ai.models.generateContent({
             model: "gemini-2.5-flash-preview-tts",
             contents: [{ parts: [{ text: item.line }] }],
@@ -1758,7 +1764,7 @@ const ImagineComponent = defineComponent({
               speechConfig: { voiceConfig: { prebuiltVoiceConfig: { voiceName } } },
             },
           });
-          
+
           const base64Audio = response.candidates?.[0]?.content?.parts?.[0]?.inlineData?.data;
           if (base64Audio) {
             allPcmData.push(decode(base64Audio));
@@ -1939,6 +1945,7 @@ const ImagineComponent = defineComponent({
           <div class="bg-white/50 p-1 rounded-full flex text-sm">
              <button @click="currentView = 'avatars'" class="px-3 py-1 rounded-full transition-colors" :class="currentView === 'avatars' ? 'bg-black text-white' : 'hover:bg-black/10'">Avatars</button>
              <button @click="currentView = 'audiobook'" class="px-3 py-1 rounded-full transition-colors" :class="currentView === 'audiobook' ? 'bg-black text-white' : 'hover:bg-black/10'">Audiobook Creator</button>
+             <button @click="currentView = 'sentry-test'" class="px-3 py-1 rounded-full transition-colors" :class="currentView === 'sentry-test' ? 'bg-black text-white' : 'hover:bg-black/10'">Test Errors</button>
           </div>
           <div class="flex items-center space-x-2">
             <!-- Auth Buttons -->
@@ -2052,6 +2059,9 @@ const ImagineComponent = defineComponent({
       </main>
 
        <main v-if="currentView === 'audiobook'" class="w-full flex-grow bg-white/50 rounded-wow p-4 flex flex-col items-center justify-center overflow-hidden">
+       <main v-if="currentView === 'sentry-test'" class="w-full flex-grow bg-white/50 rounded-wow">
+         <SentryTestPage />
+       </main>
         <!-- Step 1: Upload -->
         <div v-if="audiobookState.step === 'upload'" class="text-center">
           <h2 class="text-2xl font-bold mb-2">Audiobook Creator</h2>
@@ -2243,57 +2253,83 @@ const ImagineComponent = defineComponent({
       />
     </div>
 `
-})]
-    const app = createApp(ImagineComponent);
+});
+const app = createApp(ImagineComponent);
 
-    function decode(base64: string) {
-      const binaryString = atob(base64);
-      const len = binaryString.length;
-      const bytes = new Uint8Array(len);
-      for (let i = 0; i < len; i++) {
-        bytes[i] = binaryString.charCodeAt(i);
-      }
-      return bytes;
+// Initialize Sentry (safe no-op when DSN not provided)
+try {
+  // lazy import local helper to avoid large bundle impact
+  // eslint-disable-next-line import/no-unresolved, @typescript-eslint/no-var-requires
+  const { initSentry } = require('./src/sentry');
+  try {
+    initSentry(app);
+  } catch (e) {
+    // eslint-disable-next-line no-console
+    console.warn('Sentry helper threw:', e?.message || e);
+  }
+} catch (e) {
+  // ignore on platforms that can't require()
+}
+
+function decode(base64: string) {
+  const binaryString = atob(base64);
+  const len = binaryString.length;
+  const bytes = new Uint8Array(len);
+  for (let i = 0; i < len; i++) {
+    bytes[i] = binaryString.charCodeAt(i);
+  }
+  return bytes;
+}
+
+async function decodeAudioData(
+  data: Uint8Array,
+  ctx: AudioContext,
+  sampleRate: number,
+  numChannels: number,
+): Promise<AudioBuffer> {
+  const dataInt16 = new Int16Array(data.buffer);
+  const frameCount = dataInt16.length / numChannels;
+  const buffer = ctx.createBuffer(numChannels, frameCount, sampleRate);
+
+  for (let channel = 0; channel < numChannels; channel++) {
+    const channelData = buffer.getChannelData(channel);
+    for (let i = 0; i < frameCount; i++) {
+      channelData[i] = dataInt16[i * numChannels + channel] / 32768.0;
     }
+  }
+  return buffer;
+}
 
-    async function decodeAudioData(
-      data: Uint8Array,
-      ctx: AudioContext,
-      sampleRate: number,
-      numChannels: number,
-    ): Promise<AudioBuffer> {
-      const dataInt16 = new Int16Array(data.buffer);
-      const frameCount = dataInt16.length / numChannels;
-      const buffer = ctx.createBuffer(numChannels, frameCount, sampleRate);
+function encode(bytes: Uint8Array) {
+  let binary = '';
+  const len = bytes.byteLength;
+  for (let i = 0; i < len; i++) {
+    binary += String.fromCharCode(bytes[i]);
+  }
+  return btoa(binary);
+}
 
-      for (let channel = 0; channel < numChannels; channel++) {
-        const channelData = buffer.getChannelData(channel);
-        for (let i = 0; i < frameCount; i++) {
-          channelData[i] = dataInt16[i * numChannels + channel] / 32768.0;
-        }
-      }
-      return buffer;
-    }
+function createBlob(data: Float32Array) {
+  const l = data.length;
+  const int16 = new Int16Array(l);
+  for (let i = 0; i < l; i++) {
+    int16[i] = data[i] * 32768;
+  }
+  return {
+    data: encode(new Uint8Array(int16.buffer)),
+    mimeType: 'audio/pcm;rate=16000',
+  };
+}
 
-    function encode(bytes: Uint8Array) {
-      let binary = '';
-      const len = bytes.byteLength;
-      for (let i = 0; i < len; i++) {
-        binary += String.fromCharCode(bytes[i]);
-      }
-      return btoa(binary);
-    }
+// Validate environment configuration before mounting
+validateEnvironment();
 
-    function createBlob(data: Float32Array) {
-      const l = data.length;
-      const int16 = new Int16Array(l);
-      for (let i = 0; i < l; i++) {
-        int16[i] = data[i] * 32768;
-      }
-      return {
-        data: encode(new Uint8Array(int16.buffer)),
-        mimeType: 'audio/pcm;rate=16000',
-      };
-    }
-    
-    app.mount('#app');
+app.mount('#app');
+
+// Development-only: expose a test error trigger to validate Sentry setup
+if ((import.meta.env.MODE || 'development') !== 'production') {
+  (window as any).triggerTestError = function triggerTestError() {
+    // eslint-disable-next-line no-throw-literal
+    throw new Error('Sentry test error - ChunkFlow test');
+  };
+}
