@@ -21,7 +21,8 @@ export function validateGeminiConfig(): ValidationResult {
     warnings: []
   };
 
-  const geminiApiKey = import.meta.env.GEMINI_API_KEY ||
+  const geminiApiKey = import.meta.env.VITE_GEMINI_API_KEY ||
+                       import.meta.env.GEMINI_API_KEY ||
                        (typeof process !== 'undefined' ? process.env.GEMINI_API_KEY : null);
 
   if (!geminiApiKey) {
@@ -167,7 +168,8 @@ function displayProductionConfigError(missingVars: string[]): void {
  * Get the Gemini API key (with fallback for different environments)
  */
 export function getGeminiApiKey(): string | null {
-  return import.meta.env.GEMINI_API_KEY ||
+  return import.meta.env.VITE_GEMINI_API_KEY ||
+         import.meta.env.GEMINI_API_KEY ||
          (typeof process !== 'undefined' ? process.env.GEMINI_API_KEY : null) ||
          null;
 }

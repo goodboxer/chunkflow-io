@@ -1125,6 +1125,20 @@ const ImagineComponent = defineComponent({
     const authMode = ref<'login' | 'signup' | 'reset'>('login');
 
     const currentView = ref<'avatars' | 'audiobook' | 'sentry-test'>('avatars');
+    // Lazy-loaded view components
+    const AvatarsView = ref<any>(null);
+    const AudiobookView = ref<any>(null);
+
+    const loadView = async (view: 'avatars' | 'audiobook') => {
+      if (view === 'avatars' && !AvatarsView.value) {
+        const mod = await import('./src/views/AvatarsView');
+        AvatarsView.value = mod.default || mod.AvatarsView || mod;
+      }
+      if (view === 'audiobook' && !AudiobookView.value) {
+        const mod = await import('./src/views/AudiobookView');
+        AudiobookView.value = mod.default || mod.AudiobookView || mod;
+      }
+    };
     const noAudioCount = ref<number>(0); // Add counter for no-audio events
     const characterGenerated = ref<boolean>(false);
     const playingResponse = ref<boolean>(false);
@@ -1943,8 +1957,8 @@ const ImagineComponent = defineComponent({
         </div>
         <div class="flex items-center space-x-4">
           <div class="bg-white/50 p-1 rounded-full flex text-sm">
-             <button @click="currentView = 'avatars'" class="px-3 py-1 rounded-full transition-colors" :class="currentView === 'avatars' ? 'bg-black text-white' : 'hover:bg-black/10'">Avatars</button>
-             <button @click="currentView = 'audiobook'" class="px-3 py-1 rounded-full transition-colors" :class="currentView === 'audiobook' ? 'bg-black text-white' : 'hover:bg-black/10'">Audiobook Creator</button>
+             <button @click="(async ()=>{ currentView = 'avatars'; await loadView('avatars') })()" class="px-3 py-1 rounded-full transition-colors" :class="currentView === 'avatars' ? 'bg-black text-white' : 'hover:bg-black/10'">Avatars</button>
+             <button @click="(async ()=>{ currentView = 'audiobook'; await loadView('audiobook') })()" class="px-3 py-1 rounded-full transition-colors" :class="currentView === 'audiobook' ? 'bg-black text-white' : 'hover:bg-black/10'">Audiobook Creator</button>
              <button @click="currentView = 'sentry-test'" class="px-3 py-1 rounded-full transition-colors" :class="currentView === 'sentry-test' ? 'bg-black text-white' : 'hover:bg-black/10'">Test Errors</button>
           </div>
           <div class="flex items-center space-x-2">
@@ -1973,92 +1987,17 @@ const ImagineComponent = defineComponent({
           </div>
         </div>
       </header>
-      
-      <main v-if="currentView === 'avatars'" class="w-full flex-grow grid grid-cols-1 lg:grid-cols-5 gap-2 lg:gap-4 overflow-hidden">
-        <div class="lg:col-span-2 bg-white/50 rounded-wow p-2 lg:p-4 flex flex-col justify-between" :class="isSmallScreen && isPlayerVisible ? 'hidden' : 'flex'">
-          <div class="space-y-2 lg:space-y-4">
-            <template v-for="(category, categoryName) in categories" :key="categoryName">
-              <div class="bg-white/50 rounded-2xl p-2">
-                <h2 class="text-sm lg:text-base font-bold mb-1 ml-1">{{ categoryName }}</h2>
-                <div class="grid" :class="'grid-cols-' + (categoryName === 'Characters' ? (isSmallScreen ? 4 : 8) : (isSmallScreen ? 4 : 7)) + ' gap-1'">
-                  <div v-for="(item, key) in category.items" :key="key" @click="category.select(key)" class="button relative flex flex-col items-center justify-center p-1 lg:p-2 rounded-2xl transition-all duration-300 aspect-square" :class="category.selected.value === key ? 'bg-black text-white' : 'bg-gray-200 text-black hover:bg-gray-300'">
-                    <div class="text-2xl lg:text-4xl leading-none">{{ category.getter(item).emoji }}</div>
-                    <div v-if="category.getter(item).name" class="text-xs font-bold">{{ category.getter(item).name }}</div>
-                  </div>
-                </div>
-              </div>
-            </template>
-          </div>
-          <div class="relative mt-2">
-            <button @click="toggleVoiceDropdown" class="w-full bg-white text-black p-2 lg:p-3 rounded-2xl flex justify-between items-center text-left">
-              <div class="flex-grow">
-                <div class="font-bold text-sm lg:text-base">{{ selectedVoiceInfo.name }}</div>
-                <div class="text-xs opacity-70">{{ selectedVoiceInfo.style }} / {{ selectedVoiceInfo.pitch }}</div>
-              </div>
-              <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="w-5 h-5 transition-transform" :class="{'rotate-180': showVoiceDropdown}"><polyline points="6 9 12 15 18 9"></polyline></svg>
-            </button>
-            <transition name="fade">
-              <div v-if="showVoiceDropdown" class="absolute bottom-full mb-1 w-full bg-white rounded-2xl shadow-lg max-h-60 overflow-y-auto z-10 p-2">
-                <div v-for="voice in voiceOptions" :key="voice.name" @click="selectVoice(voice.name)" class="cursor-pointer p-2 hover:bg-gray-100 rounded-lg" :class="{'bg-gray-200': selectedVoice === voice.name}">
-                  <div class="font-bold text-sm">{{ voice.name }} <span class="font-normal opacity-70"> - {{ voice.style }} / {{ voice.pitch }}</span></div>
-                  <div class="text-xs opacity-70">{{ voice.suitability }}</div>
-                </div>
-              </div>
-            </transition>
-          </div>
-        </div>
 
-        <div class="lg:col-span-3 bg-white/50 rounded-wow p-2 lg:p-4 flex flex-col relative overflow-hidden" :class="isSmallScreen && !isPlayerVisible ? 'hidden' : 'flex'">
-          <transition name="elasticBottom">
-            <div v-if="isPlayerInDOM" class="absolute inset-0 bg-white/50 rounded-wow p-2 lg:p-4 flex flex-col items-center justify-center z-0" :class="{ 'pointer-events-none': !isPlayerVisible }">
-              <div class="w-full max-w-sm aspect-square mb-4">
-                 <CharacterImage v-if="isEverythingSelected"
-                  ref="characterImageRef"
-                  :key="characterImageKey + imageTimestamp"
-                  :character="selectedCharacter"
-                  :role="selectedRole"
-                  :mood="selectedMood"
-                  :style="selectedStyle"
-                  :model="selectedImageModel"
-                  @update:image-prompt="actualImagePrompt = $event"
-                 />
-              </div>
-              
-              <div class="flex w-full max-w-sm space-x-2">
-                <div v-for="i in 8" :key="i" class="w-1/8 h-12 bg-white/50 rounded-full animate-wave" :style="{ animationDelay: (i * 0.1) + 's', transform: 'scaleY(' + ($refs.liveAudioRef?.userWaveformData[i-1] || 0) + ')' }"></div>
-              </div>
-              <div class="flex w-full max-w-sm space-x-2 mt-2">
-                <div v-for="i in 8" :key="i" class="w-1/8 h-20 bg-black/50 rounded-full animate-wave" :style="{ animationDelay: (i * 0.1) + 's', transform: 'scaleY(' + ($refs.liveAudioRef?.systemWaveformData[i-1] || 0) + ')' }"></div>
-              </div>
-              
-              <div class="absolute bottom-4 left-4 right-4 flex justify-between items-center">
-                 <button @click="regenerateImage" class="bg-white/50 hover:bg-white p-2 rounded-full aspect-square flex items-center justify-center" title="Regenerate Image">
-                    <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M21 12a9 9 0 0 0-9-9 9.75 9.75 0 0 0-6.74 2.74L3 8"></path><path d="M3 3v5h5"></path><path d="M3 12a9 9 0 0 0 9 9 9.75 9.75 0 0 0 6.74-2.74L21 16"></path><path d="M21 21v-5h-5"></path></svg>
-                 </button>
-                 <button @click="stopPlaybackAndReset" class="bg-red-500 hover:bg-red-600 text-white p-3 rounded-full" title="Stop">
-                    <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="3" width="18" height="18" rx="2" ry="2"></rect></svg>
-                 </button>
-                 <div class="w-8"></div>
-              </div>
-
-              <div v-if="isConnecting || showClickToRestartHelp || forceShowBottomMessage" class="absolute bottom-20 text-center text-sm lg:text-base font-semibold px-4">
-                 <p v-if="isConnecting">Connecting to character...</p>
-                 <p v-if="showClickToRestartHelp">There was an issue. Click the character to try again.</p>
-              </div>
-
-            </div>
-          </transition>
-
-          <div class="absolute inset-0 flex flex-col items-center justify-center p-4 text-center" v-if="!isPlayerVisible && !isConnecting">
-             <div class="w-48 h-48 lg:w-64 lg:h-64 mb-4">
-                <img v-if="logoUrl" :src="logoUrl" alt="Audio Avatars Logo" class="w-full h-full object-contain opacity-20"/>
-             </div>
-             <p class="text-lg lg:text-xl font-bold opacity-50">{{ selectionPrompt }}</p>
-          </div>
-        </div>
+      <!-- Lazy-loaded Avatars view (code-split) -->
+      <main v-if="currentView === 'avatars'" class="w-full flex-grow">
+        <component v-if="AvatarsView" :is="AvatarsView" />
+        <div v-else class="w-full flex-grow flex items-center justify-center p-8 text-gray-500">Loading avatars...</div>
       </main>
 
-       <main v-if="currentView === 'audiobook'" class="w-full flex-grow bg-white/50 rounded-wow p-4 flex flex-col items-center justify-center overflow-hidden">
+       <main v-if="currentView === 'audiobook'" class="w-full flex-grow">
+         <component v-if="AudiobookView" :is="AudiobookView" />
+         <div v-else class="w-full flex-grow flex items-center justify-center p-8 text-gray-500">Loading audiobook...</div>
+       </main>
        <main v-if="currentView === 'sentry-test'" class="w-full flex-grow bg-white/50 rounded-wow">
          <SentryTestPage />
        </main>
